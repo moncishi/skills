@@ -1,1 +1,37 @@
-# skills
+# Agent Skills
+
+本仓库收录可供 Codex 和其他兼容 agent 使用的 skills。每个技能独立放在同名目录中，入口文件为 `SKILL.md`。
+
+## 技能列表
+
+| 技能 | 用途 | 来源 |
+| --- | --- | --- |
+| [agent-browser](agent-browser/SKILL.md) | 通过 `agent-browser` CLI 自动操作浏览器；完整操作指南由 CLI 提供。 | [vercel-labs/agent-browser](https://github.com/vercel-labs/agent-browser) |
+| [find-skills](find-skills/SKILL.md) | 搜索并推荐可安装的 agent skills。 | [vercel-labs/skills](https://github.com/vercel-labs/skills) |
+| [humanizer](humanizer/SKILL.md) | 修改 AI 痕迹较重的文字，同时保留原意和作者语气。 | [blader/humanizer](https://github.com/blader/humanizer) |
+| [karpathy-guidelines](karpathy-guidelines/SKILL.md) | 编码和代码审查时减少过度设计、未经确认的假设和无关改动。 | [multica-ai/andrej-karpathy-skills](https://github.com/multica-ai/andrej-karpathy-skills) |
+| [sc-clsemi-flow](sc-clsemi-flow/SKILL.md) | Clsemi/OpenWrt 板端开发、编译、刷机和验证流程。 | 本仓库 |
+| [sort-out](sort-out/SKILL.md) | 整理并持续维护项目文档。 | 本仓库 |
+
+## 安装
+
+通过 Skills CLI 安装单个技能：
+
+```bash
+npx skills add https://github.com/moncishi/skills --skill <skill-name>
+```
+
+例如：
+
+```bash
+npx skills add https://github.com/moncishi/skills --skill humanizer
+```
+
+`agent-browser` 还需要安装其 CLI 和浏览器：
+
+```bash
+npm i -g agent-browser
+agent-browser install
+```
+
+第三方技能目录中的 `references/UPSTREAM.md` 记录了上游链接和当前同步的 commit；上游提供独立许可证文件时，也会一并保留。
