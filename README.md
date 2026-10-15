@@ -7,7 +7,7 @@
 | 技能 | 用途 | 来源 |
 | --- | --- | --- |
 | [agent-browser](agent-browser/SKILL.md) | 通过 `agent-browser` CLI 自动操作浏览器；完整操作指南由 CLI 提供。 | [vercel-labs/agent-browser](https://github.com/vercel-labs/agent-browser) |
-| [ai-working-principles](ai-working-principles/SKILL.md) | 跨主题的 AI 协作、澄清、证据和回答准则；嵌入式背景按需使用。 | 本仓库 |
+| [ai-working-principles](ai-working-principles/SKILL.md) | 跨主题 AI 做事准则：简洁回答、证据与时效核对、按需澄清、诊断日志和验证。 | 本仓库；[参考来源](ai-working-principles/references/SOURCES.md) |
 | [find-skills](find-skills/SKILL.md) | 搜索并推荐可安装的 agent skills。 | [vercel-labs/skills](https://github.com/vercel-labs/skills) |
 | [humanizer](humanizer/SKILL.md) | 修改 AI 痕迹较重的文字，同时保留原意和作者语气。 | [blader/humanizer](https://github.com/blader/humanizer) |
 | [karpathy-guidelines](karpathy-guidelines/SKILL.md) | 编码和代码审查时减少过度设计、未经确认的假设和无关改动。 | [multica-ai/andrej-karpathy-skills](https://github.com/multica-ai/andrej-karpathy-skills) |
