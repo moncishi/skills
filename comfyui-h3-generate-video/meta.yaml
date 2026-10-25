@@ -1,0 +1,17 @@
+display-name-zh: ComfyUI MiniMax H3 视频生成器
+version: 2.0.0
+tag-en: "Video Generation"
+tag-cn: "视频生成"
+complete-tags-en:
+  - "Video / Creative Generation"
+  - "Animation / Creative Generation"
+complete-tags-cn:
+  - "视频 / 创作生成"
+  - "动画 / 创作生成"
+summary-en: "Template-driven local ComfyUI MiniMax H3 video generation with reference images/videos/audios, Motion Context chains, and automatic model selection."
+summary-cn: "模板驱动的本地 ComfyUI MiniMax H3 视频生成：支持图/视频/音频参考、分镜连续生成（Motion Context 链）与自动模型选择。"
+desc-en: "Use for local or remote ComfyUI MiniMax H3 video generation. Loads the bundled ref2va workflow template (overridable), accepts text prompts plus reference images (≤9), videos (≤3), and audios (≤3), supports 9:16 or 16:9 (required), 3-15s, 480p/768p, 4-16 steps, UNET auto fallback (int8→fp8), Motion Context chains for consecutive child shots, and any ComfyUI endpoint via --comfy-url."
+desc-cn: "用于本地或远程 ComfyUI 的 MiniMax H3 视频生成。加载内置 ref2va 工作流模板（可用 --workflow 覆盖），支持文生视频与图（≤9）/视频（≤3）/音频（≤3）参考，9:16 或 16:9（必选）、3-15 秒、480p/768p、4-16 步采样，UNET 自动回退（int8→fp8），分镜连续子镜头的 Motion Context 链，以及任意 ComfyUI 端点（--comfy-url）。"
+author-en: MiniMax Hub User
+author-cn: MiniMax Hub 用户
+source: local
