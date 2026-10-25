@@ -33,7 +33,7 @@
 | [sc-clsemi-flow](sc-clsemi-flow/SKILL.md) | Clsemi/OpenWrt 板端开发、编译、刷机和验证流程。 | 本仓库 |
 | [sort-out](sort-out/SKILL.md) | 整理并持续维护项目文档。 | 本仓库 |
 
-## 全部技能（86）
+## 全部技能（85）
 
 | 技能 | 说明 |
 | --- | --- |
@@ -51,7 +51,6 @@
 | [comfyui-h3-generate-video](comfyui-h3-generate-video/SKILL.md) | Use ONLY for local/remote ComfyUI MiniMax H3 video generation. |
 | [computer-use](computer-use/SKILL.md) | Use when a task needs a native desktop app's own UI or the OS. |
 | [control-browser](control-browser/SKILL.md) | Main-agent-only Browser Use. |
-| [copywriting-skills](copywriting-skills/SKILL.md) | Use when writing product recommendation content (种草文案) for Xiaohongshu, creating authentic product reviews,… |
 | [diagnosing-commands](diagnosing-commands/SKILL.md) | Use to diagnose and fix ZCode custom slash-command (/command) configuration problems in the ZCode client. |
 | [diagnosing-hooks](diagnosing-hooks/SKILL.md) | Use to diagnose and fix ZCode hook configuration problems in the ZCode client. |
 | [diagnosing-mcp](diagnosing-mcp/SKILL.md) | Use to diagnose and fix ZCode MCP (Model Context Protocol) server configuration problems in the ZCode client. |
