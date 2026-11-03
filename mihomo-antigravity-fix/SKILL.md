@@ -1,6 +1,6 @@
 ---
 name: mihomo-antigravity-fix
-description: Use when Google Antigravity (`agy`, the user may call it "agr") or Gemini Code Assist fails with `FAILED_PRECONDITION (code 400): User location is not supported for the API use.` while routing through mihomo / Clash, or when Google / Antigravity traffic through mihomo stops working. Diagnoses the mihomo setup, probes proxy nodes for Antigravity compatibility (datacenter/hosting exit IPs are rejected even in supported countries), and switches the `LLM` proxy-group to a working node.
+description: Use when Google Antigravity (`agy`, the user may call it "agr") or Gemini Code Assist fails with `FAILED_PRECONDITION (code 400): User location is not supported for the API use.` while routing through mihomo / Clash, or when Google / Antigravity traffic through mihomo stops working. Diagnoses the mihomo setup, probes proxy nodes for Antigravity compatibility (datacenter/hosting exit IPs are rejected even in supported countries), and switches the `AGY` proxy-group to a working node.
 ---
 
 # mihomo × Google Antigravity 修复
@@ -23,17 +23,28 @@ description: Use when Google Antigravity (`agy`, the user may call it "agr") or 
 | 混合端口 | `127.0.0.1:7890`（http+socks） |
 | 外部控制 API | `127.0.0.1:9090`，`secret` 在 `config.yaml` |
 | agy | `/home/monci/.local/bin/agy`，凭据在 gnome-keyring + `~/.gemini/antigravity-cli/antigravity-oauth-token` |
-| 关键分流组 | `LLM`（2026-10-11 前叫 `GOOGLE`；承载 `googleapis.com` / `google.com` / `goog` 等，Antigravity 全部走它） |
-| provider | `subscription`（主机房订阅，节点多为机房 IP，**常被拒**）、`feiniao`（飞鸟云 Hysteria2，**更可能可用**） |
+| Google / Antigravity 分流组 | `AGY`（此前叫 `LLM`，2026-10-11 前叫 `GOOGLE`） |
+| OpenAI / Codex 与 xAI / Grok 分流组 | `CODEX`（当前只使用 `bjnet2` 的 4 个白名单节点） |
+| provider | `subscription`（主机房订阅，节点多为机房 IP，**常被拒**）、`feiniao`（飞鸟云 Hysteria2，**更可能可用**）、`bjnet2`（2026-10-26 新增 IEPL；12 个节点中仅台湾/台湾2/德国 3 个通过 Antigravity 测试） |
 
 配置与更多背景见 `/home/monci/.config/mihomo/README.md`。
+
+## 当前分流组（以本机 `config.yaml` 为准）
+
+| 分组 | 承载流量 | 当前来源 / 范围 |
+| --- | --- | --- |
+| `CODEX` | OpenAI / Codex 与 xAI / Grok | 仅 `bjnet2`；白名单为 `🇸🇬新加坡2-Gemini-IEPL`、`🇺🇸美国-IEPL-GPT`、`🇺🇸美国2-IEPL-GPT`、`🇩🇪德国-IEPL` |
+| `AGY` | Google / Antigravity | `bjnet2`、`feiniao`、`subscription` 中符合 AGY 白名单的节点 |
+| `LLM_SCAN`、`LLM_SCAN_2`…`LLM_SCAN_8` | AGY 扫描临时分组 | 扫描脚本按 worker 临时创建，完成后清理；不是常规业务分流组 |
+
+当前规则把 `openai.com`、`chatgpt.com`、`oaistatic.com`、`oaiusercontent.com`、`x.ai`、`grok.com` 送到 `CODEX`；Google / Antigravity 相关域名送到 `AGY`。`CODEX` 的四个节点来自当前配置注释所述的 OpenAI API 可用白名单；xAI 未逐节点验证。**本技能中的 `scan-llm-agy.sh`、`probe-fast.sh` 和 `probe-and-fix.sh` 只验证 / 操作 `AGY`，不会验证或切换 `CODEX`；Antigravity 探针结果不能当作 Codex 可用性结论。**
 
 ## 快速修复（最常见路径）
 
 ```bash
-# 1) 看 LLM 组现在指向谁
+# 1) 看 AGY 组现在指向谁
 SECRET=$(sed -n 's/^secret:[[:space:]]*"\?\([^"]*\)"\?.*/\1/p' ~/.config/mihomo/config.yaml | head -1)
-curl -s --noproxy '*' -H "Authorization: Bearer $SECRET" http://127.0.0.1:9090/proxies/LLM \
+curl -s --noproxy '*' -H "Authorization: Bearer $SECRET" http://127.0.0.1:9090/proxies/AGY \
   | python3 -c 'import sys,json;print("now =",json.load(sys.stdin)["now"])'
 
 # 2) 一键扫描并切换（推荐，见下）
@@ -41,7 +52,7 @@ bash ~/.agents/skills/mihomo-antigravity-fix/scripts/probe-and-fix.sh
 
 # 3) 手动切换到已知可用节点
 curl -s --noproxy '*' -X PUT -H "Authorization: Bearer $SECRET" -H 'Content-Type: application/json' \
-  -d '{"name":"日本14aws"}' http://127.0.0.1:9090/proxies/LLM
+  -d '{"name":"日本14aws"}' http://127.0.0.1:9090/proxies/AGY
 
 # 4) 用真实 agy 验证（必须返回 PONG）
 ~/.local/bin/agy --print "reply with exactly PONG"
@@ -63,8 +74,8 @@ curl -s --noproxy '*' -X PUT -H "Authorization: Bearer $SECRET" -H 'Content-Type
 3. **确认 agy 真的走 mihomo**（可选）
    把 `https_proxy` 指向黑洞端口再跑一次：若报 `proxyconnect ... connection refused` 而非
    location 错误，说明它确实用了代理。
-4. **扫描出口节点**：`scan-llm-agy.sh`（全量、不影响当前分流；加 `--fast` 用 HTTP 探针，约 10 分钟）
-   或 `probe-and-fix.sh`（在 LLM 组内逐个用真实 `agy` 验证，挑返回 `PONG` 的节点）。**注意**：
+4. **扫描出口节点**：`scan-llm-agy.sh`（全量、不影响当前分流；加 `--fast` 用 HTTP 探针，可并发扫描）
+   或 `probe-and-fix.sh`（在 AGY 组内逐个用真实 `agy` 验证，挑返回 `PONG` 的节点）。**注意**：
    Antigravity 按每次连接的出口 IP 随机判定，同一节点时好时坏；单次 `LOCATION` 不下结论，
    同一节点**最多探测 3 次、≥2 次 PONG 才算通过**（快速探针同理：6 次里 ≥4 次 OK）。
 5. **仍无节点可用** → 刷新 provider（`--refresh`）或更换/新增订阅（要**非机房/住宅/干净 IP**）。
@@ -74,7 +85,10 @@ curl -s --noproxy '*' -X PUT -H "Authorization: Bearer $SECRET" -H 'Content-Type
 ```bash
 S=~/.agents/skills/mihomo-antigravity-fix/scripts/scan-llm-agy.sh
 bash $S                      # 真实 agy 全量扫描（最稳，约 1 小时）
-bash $S --fast               # HTTP 快速探针全量（约 10 分钟，判定与 agy 一致）
+bash $S --fast               # HTTP 快速探针全量（默认 4 路并发，判定与 agy 一致）
+bash $S --fast --jobs 1      # 串行快速扫描
+bash $S --fast --jobs 6      # 6 路并发；jobs 支持 1-8
+bash $S --jobs 2             # 真实 agy 也可并发；默认仍为 1，避免认证/资源压力
 bash $S --fast --limit 3     # 冒烟测试：只扫前 3 个候选
 bash $S --fast --nodes "印度-优化,香港WAP-优化"   # 只扫指定节点
 bash $S --fast --verify 3    # 快速扫完后，对前 3 个 PASS 节点补真实 agy 抽查
@@ -82,14 +96,18 @@ bash $S --probe-count 8      # 快速模式每节点最多探测次数（默认 
 bash $S --keep               # 扫描后保留临时组 LLM_SCAN / 端口 7891
 ```
 
-- 两种模式都经临时组 `LLM_SCAN` + 本地端口 `127.0.0.1:7891` 进行，**不动** `LLM` 组当前选择和正常分流；
-  开始/结束自动注入/移除临时配置并重载（`PUT /configs?force=true`）。
+- 扫描用临时 selector 组和本地监听端口：worker 1 用 `LLM_SCAN` / `7891`，后续 worker 用
+  `LLM_SCAN_2`…`LLM_SCAN_8` / `7892`…`7898`。每个 worker 只改自己的 selector，避免并发时节点路由串线。
+  **不动** `AGY` 组当前选择和正常分流；开始/结束自动注入/移除临时配置并重载
+  （`PUT /configs?force=true`），结束时恢复扫描前的配置内容；`--keep` 才会保留临时配置。
+  扫描和单节点探测共享锁，避免同时改临时 selector。`--jobs` 为 1-8；快速扫描默认 4，真实 agy 默认 1。
+  若快速扫描出现较多 `429`/`other` 噪声，降低 `--jobs` 后重扫，避免并发请求把配额或线路压满。
 - 默认模式判定：真实 `agy --print "reply with exactly PONG"`，每节点 ≤3 次、`PONG` ≥2 次 = PASS；
   `L`=LOCATION、`O`=超时/其他、`A`=登录态问题（连续 3 个 A 会中止）。
 - `--fast` 判定：HTTP 探针（见下），每节点最多 `--probe-count` 次（默认 6），OK ≥ ⌈2K/3⌉ = PASS
   （6 次里 ≥4 次）；`P`=OK、`L`=LOCATION、`N`=节点不通（首个探测即 N 直接判死节点，省时）。
 - 结果落盘 `/tmp/opencode/agy_scan_<ts>.tsv|.log`；**白名单不自动改**，人工复核后把打印出的
-  filter 正则粘进 `~/.config/mihomo/config.yaml` 的 `LLM` 组并重载。
+  filter 正则粘进 `~/.config/mihomo/config.yaml` 的 `AGY` 组并重载。
 
 ## probe-fast.sh 用法（单节点秒级体检）
 
@@ -121,10 +139,10 @@ bash $PF --teardown                  # 移除临时组 LLM_SCAN / 端口 7891
 
 ```bash
 S=~/.agents/skills/mihomo-antigravity-fix/scripts/probe-and-fix.sh
-bash $S                 # 默认候选池扫描，命中即切到 LLM 组
-bash $S --full          # 扫描 LLM 组全部节点（很慢，45+ 节点 * ~60s）
+bash $S                 # 默认候选池扫描，命中即切到 AGY 组
+bash $S --full          # 扫描 AGY 组全部节点（很慢，45+ 节点 * ~60s）
 bash $S --nodes "日本14aws 新加坡01aws"
-bash $S --list          # 只列出 LLM 组可选节点
+bash $S --list          # 只列出 AGY 组可选节点
 bash $S --dry-run       # 只扫描不切换
 bash $S --refresh       # 先强制刷新所有 provider 再扫描
 bash $S --verify        # 只做一次 agy 验证，不扫描
@@ -138,8 +156,8 @@ bash $S --verify        # 只做一次 agy 验证，不扫描
 
 ## 已知可用节点（2026-10-15 重扫，76 → 30 个通过）
 
-白名单与每次重扫结果以 `/home/monci/.config/mihomo/README.md` 的「LLM 白名单」节为准；
-`LLM` 组的 `filter` 正则即白名单本体（当前 30 个）。最近一次结果：
+白名单与每次重扫结果以 `/home/monci/.config/mihomo/README.md` 的「AGY 白名单」节为准；
+`AGY` 组的 `filter` 正则即白名单本体（当前 33 个，含 2026-10-26 新增的 3 个 IEPL）。最近一次结果：
 
 - 通过（30）：`新加坡01/03/04/05/09/13aws`、`美国03/04/05/06/08/10/11/12aws`、
   `日本02/05/06/10/14/16/17aws`、`hy2台湾02-09`、`印度-优化`
@@ -156,14 +174,14 @@ bash $S --verify        # 只做一次 agy 验证，不扫描
 
 ## 修复「根因」而不是「现象」
 
-- 如果候选池命中率很低，说明订阅节点质量差：给 `LLM` 组补一个**住宅/非机房**来源。
+- 如果候选池命中率很低，说明订阅节点质量差：给 `AGY` 组补一个**住宅/非机房**来源。
 - 换订阅/改 `config.yaml` 后必须重启并强制刷新 provider：
   ```bash
   systemctl --user restart mihomo
   curl -s --noproxy '*' -X PUT -H "Authorization: Bearer $SECRET" \
     http://127.0.0.1:9090/providers/proxies/feiniao -o /dev/null -w '%{http_code}\n'
   ```
-- 不要把 `LLM` 组选中到香港/中国节点（国家本身不支持，必挂）。
+- 不要把 `AGY` 组选中到香港/中国节点（国家本身不支持，必挂）。
 - **不要用对同一个节点的单次探测下结论**：实时测得同一节点连续 4 次 LOCATION 后 1 分钟内又能
   PONG（per-connection 出口 IP 随机）；判定一律「≤3 次探测、≥2 次 PONG」。
 

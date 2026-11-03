@@ -15,7 +15,7 @@
 #
 # Non-disruptive: probes run through local listener 127.0.0.1:7891 -> temporary
 # group `LLM_SCAN` injected into config.yaml (same markers as scan-llm-agy.sh).
-# The user's LLM group selection is untouched. Use `--teardown` to remove.
+# The user's AGY group selection is untouched. Use `--teardown` to remove.
 #
 # Usage:
 #   probe-fast.sh --node 印度-优化 --count 6     # probe one node, exit 0 if PASS
@@ -33,6 +33,7 @@ CONFIG="$MIHOMO_DIR/config.yaml"
 API="${MIHOMO_API:-http://127.0.0.1:9090}"
 SCAN_PORT="${SCAN_PORT:-7891}"
 OUT_DIR="${OUT_DIR:-/tmp/opencode}"
+LOCK_FILE="${SCAN_LOCK_FILE:-/tmp/opencode/agy_scan.lock}"
 TOKEN_FILE="$OUT_DIR/agy_probe_token.txt"
 TOKEN_META="$OUT_DIR/agy_probe_token.meta"
 AGY_AUTH="${AGY_AUTH:-$HOME/.gemini/antigravity-cli/antigravity-oauth-token}"
@@ -55,51 +56,65 @@ pf_reload() {
     -H "Authorization: Bearer $(pf_secret)" -H 'Content-Type: application/json' -d '{"path":""}'
 }
 
-pf_config_edit() {  # $1=setup|teardown (same blocks as scan-llm-agy.sh)
-  python3 - "$CONFIG" "$1" <<'PYEOF'
+pf_config_edit() {  # $1=setup|teardown, $2=worker count (setup only)
+  python3 - "$CONFIG" "$1" "${2:-1}" <<'PYEOF'
 import pathlib, re, sys, yaml
-p = pathlib.Path(sys.argv[1]); mode = sys.argv[2]
-t = p.read_text()
+p = pathlib.Path(sys.argv[1]); mode = sys.argv[2]; jobs = int(sys.argv[3])
+if not 1 <= jobs <= 8:
+    raise SystemExit("worker count must be between 1 and 8")
+original = p.read_text(); t = original
 MB, ME = "# ==== TEMP-SCAN (scan-llm-agy.sh) ====", "# ==== /TEMP-SCAN ===="
+# Remove stale or previous-version blocks first, then create exactly the requested
+# isolated worker groups/listeners. A worker never changes another worker's route.
+t = re.sub(rf"\n{re.escape(MB)}\nlisteners:\n(?:  .*\n)+{re.escape(ME)}\n", "", t)
+t = re.sub(rf"\n  {re.escape(MB)}\n(?:  .*\n)+  {re.escape(ME)}\n", "", t)
+t = re.sub(r"\n{3,}", "\n\n", t)
 if mode == "setup":
-    if MB not in t:
-        lb = f"\n{MB}\nlisteners:\n  - name: scan-in\n    type: mixed\n    listen: 127.0.0.1\n    port: 7891\n    proxy: LLM_SCAN\n{ME}\n"
-        anchor = "tcp-concurrent: true\n"
-        assert anchor in t, "anchor tcp-concurrent not found"
-        t = t.replace(anchor, anchor + lb, 1)
-        gb = f"\n  {MB}\n  # LLM_SCAN: temporary group for agy compatibility scans\n  - name: LLM_SCAN\n    type: select\n    use:\n      - feiniao\n      - subscription\n  {ME}\n"
-        anchor2 = "\n  - name: AUTO\n"
-        assert anchor2 in t, "anchor AUTO group not found"
-        t = t.replace(anchor2, gb + anchor2, 1)
-        yaml.safe_load(t)
-        p.write_text(t)
-else:
-    t = re.sub(rf"\n{re.escape(MB)}\nlisteners:\n(?:  .*\n)+{re.escape(ME)}\n", "\n", t)
-    t = re.sub(rf"\n  {re.escape(MB)}\n(?:  .*\n)+  {re.escape(ME)}\n", "\n", t)
-    t = re.sub(r"\n{3,}", "\n\n", t)
-    yaml.safe_load(t)
+    listeners = []
+    groups = []
+    for i in range(1, jobs + 1):
+        group = "LLM_SCAN" if i == 1 else f"LLM_SCAN_{i}"
+        port = 7890 + i
+        listeners.append(f"  - name: scan-in-{i}\n    type: mixed\n    listen: 127.0.0.1\n    port: {port}\n    proxy: {group}")
+        groups.append(f"  - name: {group}\n    type: select\n    use:\n      - bjnet2\n      - feiniao\n      - subscription")
+    lb = f"\n{MB}\nlisteners:\n" + "\n".join(listeners) + f"\n{ME}\n"
+    anchor = "tcp-concurrent: true\n"
+    assert anchor in t, "anchor tcp-concurrent not found"
+    t = t.replace(anchor, anchor + lb, 1)
+    gb = f"\n  {MB}\n  # Isolated temporary proxy groups for parallel agy probes\n" + "\n".join(groups) + f"\n  {ME}\n"
+    anchor2 = "\n  - name: AUTO\n"
+    assert anchor2 in t, "anchor AUTO group not found"
+    t = t.replace(anchor2, gb + anchor2, 1)
+yaml.safe_load(t)  # never write an invalid config
+if t != original:
     p.write_text(t)
+    print("changed")
+else:
+    print("unchanged")
 PYEOF
   python3 -c "import yaml,sys;yaml.safe_load(open('$CONFIG'))" || { echo "ERR: YAML invalid after $1" >&2; return 1; }
 }
 
-pf_inject() {  # idempotent; reloads only when it actually changed something
-  local before after
-  before="$(grep -c "$MARK_BEGIN" "$CONFIG" || true)"
-  pf_config_edit setup
-  after="$(grep -c "$MARK_BEGIN" "$CONFIG" || true)"
-  if [ "$before" != "$after" ]; then
-    echo "setup: injected LLM_SCAN + listener $SCAN_PORT (reload -> HTTP $(pf_reload))"
+pf_inject() {  # idempotent; $1=worker count
+  local status
+  status="$(pf_config_edit setup "${1:-1}")" || return 1
+  if [ "$status" = changed ]; then
+    echo "setup: injected isolated LLM_SCAN groups/listeners (reload -> HTTP $(pf_reload))"
   fi
 }
 
-pf_teardown() { pf_config_edit teardown && echo "teardown reload -> HTTP $(pf_reload)"; }
+pf_teardown() {
+  local status
+  status="$(pf_config_edit teardown 1)" || return 1
+  [ "$status" = changed ] && echo "teardown reload -> HTTP $(pf_reload)"
+}
 
-pf_set_node() {  # $1 = node name -> HTTP code
+pf_set_node() {  # $1 = node name, $2 = isolated group -> HTTP code
+  local group="${2:-LLM_SCAN}"
   curl -s --noproxy '*' -o /dev/null -w '%{http_code}' -X PUT \
     -H "Authorization: Bearer $(pf_secret)" -H 'Content-Type: application/json' \
     -d "$(python3 -c 'import json,sys;print(json.dumps({"name":sys.argv[1]}))' "$1")" \
-    "$API/proxies/LLM_SCAN"
+    "$API/proxies/$group"
 }
 
 pf_ensure_token() {
@@ -141,9 +156,10 @@ PY
   printf 'saved_at=%s\n' "$now" > "$TOKEN_META"
 }
 
-pf_probe() {  # single request -> OK | LOCATION | NETERR | ERR:<code>:<msg>
+pf_probe() {  # $1=listener port; single request -> OK | LOCATION | NETERR | ERR
+  local port="${1:-$SCAN_PORT}"
   local raw code body msg
-  raw=$(curl -sS --noproxy '' -x "http://127.0.0.1:$SCAN_PORT" -m 12 -w $'\n__CODE:%{http_code}' -X POST "$PF_EP" \
+  raw=$(curl -sS --noproxy '' -x "http://127.0.0.1:$port" -m 12 -w $'\n__CODE:%{http_code}' -X POST "$PF_EP" \
         -H "Authorization: Bearer $(cat "$TOKEN_FILE")" \
         -H "Content-Type: application/json" \
         -H "User-Agent: $PF_UA" \
@@ -165,14 +181,15 @@ print((m.group(1).replace("\\n"," ").replace("\n"," ")[:100]) if m else t[:100].
   echo "ERR:${code:-?}:$msg"
 }
 
-pf_probe_node() {  # $1=node $2=count ; prints "VERDICT ok/K detail avg_ms" ; exit-style return 0 pass
-  local node="$1" K="${2:-6}" pass_at fail_at ok=0 loc=0 other=0 det="" attempts=0 t0 t1 ms=0 r
+pf_probe_node() {  # $1=node $2=count $3=group $4=port
+  local node="$1" K="${2:-6}" group="${3:-LLM_SCAN}" port="${4:-$SCAN_PORT}"
+  local pass_at fail_at ok=0 loc=0 other=0 det="" attempts=0 t0 t1 ms=0 r
   pass_at=$(( (2*K + 2) / 3 )); fail_at=$(( K - pass_at + 1 ))
-  pf_set_node "$node" >/dev/null
+  pf_set_node "$node" "$group" >/dev/null
   while [ "$attempts" -lt "$K" ] && [ "$ok" -lt "$pass_at" ] && [ "$loc" -lt "$fail_at" ]; do
     attempts=$((attempts+1))
     t0=$(date +%s%N)
-    r=$(pf_probe)
+    r=$(pf_probe "$port")
     t1=$(date +%s%N); ms=$(( ms + (t1-t0)/1000000 ))
     case "$r" in
       OK*)       ok=$((ok+1)); det+="P" ;;
@@ -205,12 +222,13 @@ pf_main() {
   done
   if [ "$teardown_only" = 1 ]; then pf_teardown; return 0; fi
   [ -n "$nodes" ] || { echo "usage: probe-fast.sh --node NAME [--count K] | --teardown" >&2; return 2; }
-  pf_inject || return 1
+  mkdir -p "$OUT_DIR"
+  pf_inject 1 || return 1
   pf_ensure_token || return 1
   IFS=',' read -r -a list <<<"${nodes%,}"
   for n in "${list[@]}"; do
     [ -n "$n" ] || continue
-    local out; out="$(pf_probe_node "$n" "$count")"
+    local out; out="$(pf_probe_node "$n" "$count" LLM_SCAN "$SCAN_PORT")"
     printf '%-20s %s\n' "$n" "$out"
     [[ "$out" == PASS* ]] || rc=1
   done
@@ -218,5 +236,9 @@ pf_main() {
 }
 
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  mkdir -p "$OUT_DIR"
+  mkdir -p "$(dirname "$LOCK_FILE")"
+  exec 9>"$LOCK_FILE"
+  flock -n 9 || { echo "ERR: another agy scan/probe is using the temporary mihomo groups" >&2; exit 1; }
   pf_main "$@"
 fi

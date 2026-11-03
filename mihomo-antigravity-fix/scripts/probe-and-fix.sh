@@ -14,7 +14,7 @@ set -u
 MIHOMO_DIR="${MIHOMO_DIR:-$HOME/.config/mihomo}"
 CONFIG="$MIHOMO_DIR/config.yaml"
 API="${MIHOMO_API:-http://127.0.0.1:9090}"
-GROUP="${GROUP:-LLM}"
+GROUP="${GROUP:-AGY}"
 AGY="${AGY:-$HOME/.local/bin/agy}"
 TIMEOUT="${TIMEOUT:-90}"
 
@@ -32,7 +32,7 @@ while [ $# -gt 0 ]; do
     --refresh) REFRESH=1 ;;
     --verify) VERIFY=1 ;;
     --nodes) shift; NODES="${1:-}" ;;
-    --group) shift; GROUP="${1:-LLM}" ;;
+    --group) shift; GROUP="${1:-AGY}" ;;
     --timeout) shift; TIMEOUT="${1:-90}" ;;
     -h|--help) sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "unknown arg: $1" >&2; exit 2 ;;
@@ -98,7 +98,7 @@ if [ "$REFRESH" = 1 ]; then
 fi
 
 if [ "$LIST" = 1 ]; then
-  echo "LLM/[$GROUP] now = $(group_now)"; group_nodes; exit 0
+  echo "AGY/[$GROUP] now = $(group_now)"; group_nodes; exit 0
 fi
 
 if [ "$VERIFY" = 1 ]; then
