@@ -33,7 +33,7 @@
 | [sc-clsemi-flow](coding-and-engineering/sc-clsemi-flow/SKILL.md) | Clsemi/OpenWrt 板端开发、编译、刷机和验证流程。 | 本仓库 |
 | [sort-out](coding-and-engineering/sort-out/SKILL.md) | 整理并持续维护项目文档。 | 本仓库 |
 
-## 全部技能（40）
+## 全部技能（41）
 
 | 技能 | 说明 |
 | --- | --- |
@@ -76,6 +76,7 @@
 | [tikhub-api-helper](content-and-social/tikhub-api-helper/SKILL.md) | Search and query TikHub APIs for TikTok, Douyin, Xiaohongshu, Lemon8, Instagram, YouTube, Twitter, Reddit, a… |
 | [title-writing](content-and-social/title-writing/SKILL.md) | Use when writing Xiaohongshu post titles, creating headlines for content, improving click-through rates, or… |
 | [web-gui-tester](coding-and-engineering/web-gui-tester/SKILL.md) | Use the browser automation tooling available in the session to test web frontends interactively in a purely… |
+| [wjkc-kuaiche](agent-and-meta/wjkc-kuaiche/SKILL.md) | 网际快车（wjkc / 快车 / 任意.快车.com）机场账户操作：登录、每日签到、查询剩余流量和流量消耗（按日、按节点）。 |
 | [xlsx](office-docs/xlsx/SKILL.md) | Use this skill any time a spreadsheet file is the primary input or output. |
 
 ## 安装
