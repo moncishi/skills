@@ -15,12 +15,14 @@ description: 网际快车（wjkc / 快车 / 任意.快车.com）机场账户操�
 
 ## 凭据设置
 
-脚本不包含内置账号密码，使用前请通过环境变量或 `--email` / `--password` 参数提供：
+脚本不包含内置账号密码（禁止写入仓库），使用前请通过环境变量或 `--email` / `--password` 参数提供：
 
 ```bash
 export WJKC_EMAIL="your@example.com"
 export WJKC_PASSWORD="your_password"
 ```
+
+**从 OpenViking 获取凭据**：如果当前环境尚未配置 `WJKC_EMAIL` / `WJKC_PASSWORD`，且会话中接入了 OpenViking MCP（或 `ov` CLI），可先通过 OpenViking 检索网际快车账号信息（例如调用 `find` / `search` 查询 `"网际快车 wjkc 账号"`，并用 `read` 读取命中 `viking://` URI 的完整内容），提取邮箱和密码后以环境变量或参数方式传给 `scripts/wjkc.py`。注意不要在回复中回显明文密码，也不要将凭据写入仓库文件。
 
 可选覆盖环境变量：`WJKC_BASE`（默认 `https://p1x.wjkc.xyz`）、`WJKC_PROXY`（默认 `http://127.0.0.1:7890`）。
 
