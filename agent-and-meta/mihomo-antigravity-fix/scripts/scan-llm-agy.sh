@@ -16,14 +16,16 @@
 # and listeners are removed when the scan finishes (unless --keep).
 #
 # Usage:
-#   bash scan-llm-agy.sh                       # full scan, real agy (slow, ~1h)
-#   bash scan-llm-agy.sh --fast                # full scan, HTTP probe (default 4-way parallel)
+#   bash scan-llm-agy.sh                       # scan non-1x non-HK nodes (3x first, then 5x), real agy
+#   bash scan-llm-agy.sh --fast                # fast HTTP probe (default 4-way parallel)
 #   bash scan-llm-agy.sh --fast --jobs 4       # probe four isolated routes concurrently
 #   bash scan-llm-agy.sh --fast --jobs 1       # serial fast scan
 #   bash scan-llm-agy.sh --jobs 2             # opt in to concurrent real agy probes
 #   bash scan-llm-agy.sh --fast --limit 5      # smoke test: first 5 candidates
 #   bash scan-llm-agy.sh --fast --nodes a,b,c  # scan only these nodes
 #   bash scan-llm-agy.sh --fast --verify 3     # agy spot-check first 3 PASS nodes
+#   bash scan-llm-agy.sh --include-1x          # also scan 1x nodes (not recommended for AGY)
+#   bash scan-llm-agy.sh --include-hk          # also scan Hong Kong nodes
 #   bash scan-llm-agy.sh --probe-count 8       # fast mode: probes per node (default 6)
 #   bash scan-llm-agy.sh --keep                # keep temporary groups/listeners after scan
 # Output: /tmp/opencode/agy_scan_<ts>.tsv + .log ; final PASS list + filter regex.
@@ -37,7 +39,7 @@ OUT_DIR="${OUT_DIR:-/tmp/opencode}"
 LOCK_FILE="${SCAN_LOCK_FILE:-/tmp/opencode/agy_scan.lock}"
 AGY="${AGY:-$HOME/.local/bin/agy}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-LIMIT=0; KEEP=0; FAST=0; PROBE_COUNT=6; NODES_ARG=""; VERIFY=0; JOBS=""
+LIMIT=0; KEEP=0; FAST=0; PROBE_COUNT=6; NODES_ARG=""; VERIFY=0; JOBS=""; INCLUDE_1X=0; INCLUDE_HK=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --limit) shift; LIMIT="${1:-0}" ;;
@@ -47,7 +49,9 @@ while [ $# -gt 0 ]; do
     --nodes) shift; NODES_ARG="${1:-}" ;;
     --verify) shift; VERIFY="${1:-0}" ;;
     --jobs) shift; JOBS="${1:-}" ;;
-    -h|--help) sed -n '2,26p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    --include-1x) INCLUDE_1X=1 ;;
+    --include-hk) INCLUDE_HK=1 ;;
+    -h|--help) sed -n '2,29p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "unknown arg: $1" >&2; exit 2 ;;
   esac
   shift
@@ -145,17 +149,35 @@ if [ -n "$NODES_ARG" ]; then
   candidates="$(tr ',' '\n' <<<"$NODES_ARG")"
 else
   candidates="$(api "$API/providers/proxies" | python3 -c '
-import sys,json
-d=json.load(sys.stdin)["providers"]
-bad=("剩余流量","套餐到期","过滤掉","电报群","防失联","每次使用前","有超过","官网")
-seen=[]
-for prov in ("bjnet2","feiniao","subscription"):
-    for n in d.get(prov,{}).get("proxies",[]):
-        name=n.get("name","")
+import re, sys, json
+include_1x = sys.argv[1] == "1"
+include_hk = sys.argv[2] == "1"
+d = json.load(sys.stdin)["providers"]
+bad = ("剩余流量","套餐到期","过滤掉","电报群","防失联","每次使用前","有超过","官网","永久流量")
+is_1x = re.compile(r"(^|[^0-9.])1[倍xX]")
+is_3x = re.compile(r"(^|[^0-9.])3[倍xX]")
+is_5x = re.compile(r"(^|[^0-9.])5[倍xX]")
+
+def rank(name):
+    if is_3x.search(name): return 0
+    if is_5x.search(name): return 1
+    if not is_1x.search(name): return 2
+    return 3
+
+seen = set()
+items = []
+for prov, pdata in d.items():
+    if prov == "default": continue
+    for n in pdata.get("proxies", []):
+        name = n.get("name", "")
+        if not name or name in seen: continue
         if any(b in name for b in bad): continue
-        if name in seen: continue
-        seen.append(name)
-print("\n".join(seen))')"
+        if not include_hk and "香港" in name: continue
+        if not include_1x and is_1x.search(name): continue
+        seen.add(name)
+        items.append((rank(name), len(items), name))
+items.sort(key=lambda x: (x[0], x[1]))
+print("\n".join(x[2] for x in items))' "$INCLUDE_1X" "$INCLUDE_HK")"
 fi
 if [ "$LIMIT" -gt 0 ]; then candidates="$(head -n "$LIMIT" <<<"$candidates")"; fi
 total=$(grep -c . <<<"$candidates")

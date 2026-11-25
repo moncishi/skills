@@ -70,20 +70,27 @@ t = re.sub(rf"\n{re.escape(MB)}\nlisteners:\n(?:  .*\n)+{re.escape(ME)}\n", "", 
 t = re.sub(rf"\n  {re.escape(MB)}\n(?:  .*\n)+  {re.escape(ME)}\n", "", t)
 t = re.sub(r"\n{3,}", "\n\n", t)
 if mode == "setup":
+    cfg = yaml.safe_load(t) or {}
+    provs = [k for k in (cfg.get("proxy-providers") or {}).keys()]
+    if not provs:
+        provs = ["wjkc"]
+    prov_yaml = "\n".join(f"      - {p}" for p in provs)
     listeners = []
     groups = []
     for i in range(1, jobs + 1):
         group = "LLM_SCAN" if i == 1 else f"LLM_SCAN_{i}"
         port = 7890 + i
         listeners.append(f"  - name: scan-in-{i}\n    type: mixed\n    listen: 127.0.0.1\n    port: {port}\n    proxy: {group}")
-        groups.append(f"  - name: {group}\n    type: select\n    use:\n      - bjnet2\n      - feiniao\n      - subscription")
+        groups.append(f"  - name: {group}\n    type: select\n    use:\n{prov_yaml}")
     lb = f"\n{MB}\nlisteners:\n" + "\n".join(listeners) + f"\n{ME}\n"
     anchor = "tcp-concurrent: true\n"
     assert anchor in t, "anchor tcp-concurrent not found"
     t = t.replace(anchor, anchor + lb, 1)
     gb = f"\n  {MB}\n  # Isolated temporary proxy groups for parallel agy probes\n" + "\n".join(groups) + f"\n  {ME}\n"
-    anchor2 = "\n  - name: AUTO\n"
-    assert anchor2 in t, "anchor AUTO group not found"
+    anchor2 = "\n  - name: ♻️ 自动选择\n"
+    if anchor2 not in t:
+        anchor2 = "\n  - name: AGY\n"
+    assert anchor2 in t, "anchor group not found"
     t = t.replace(anchor2, gb + anchor2, 1)
 yaml.safe_load(t)  # never write an invalid config
 if t != original:
@@ -143,9 +150,14 @@ PY
   fi
   if [ -z "$tok" ]; then  # fallback: agy's own token if not expired yet
     tok="$(python3 - "$AGY_AUTH" <<'PY' 2>/dev/null || true
-import json,sys,datetime
+import json,sys,datetime,re
 d=json.load(open(sys.argv[1]))["token"]
-exp=datetime.datetime.fromisoformat(d["expiry"])
+raw=d["expiry"]
+# agy 写的是纳秒精度，Python 3.10 的 fromisoformat 只接受 6 位，需截断
+m=re.match(r'^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(?:\.(\d+))?([+-]\d{2}:?\d{2})?$', raw)
+if not m: sys.exit(0)
+s=m.group(1)+('.'+m.group(2)[:6].ljust(6,'0') if m.group(2) else '')+(m.group(3) or '')
+exp=datetime.datetime.fromisoformat(s)
 if exp > datetime.datetime.now(exp.tzinfo) + datetime.timedelta(seconds=60):
     print(d["access_token"])
 PY
