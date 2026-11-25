@@ -41,4 +41,5 @@
 ## 版本与报告
 - 每次尝试新建分支：`test/<基线>-<功能>-<序号>`
 - 每个分支都写报告 `reports/<分支名>/report.md`：基线 commit、patch、固件名 + `crc32`、完整日志、结论（失败也写）
+- 提交前先看 `git diff`（确认非相邻注释、计数说明和相关文档已同步，防止过期），提交后再用 `git diff HEAD~1 HEAD` 对比复核
 - 进展记录在 `STATE.md`，新会话先读 `AGENTS.md` → `STATE.md` → `docs/hardware/` & `docs/build_and_flash.md`

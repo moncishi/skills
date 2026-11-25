@@ -111,7 +111,10 @@ description: 嵌入式 / BSP / Linux / OpenWrt / U-Boot / 驱动与板端 bring-
 
 1. **每次尝试独立测试分支**：例如 `test/<基线>-<功能>-<序号>`（如 `test/20261125-flash-01` ~ `-04`）；失败的尝试也要保留分支，确认通过后再合并主干。
 2. **每个分支沉淀测试报告到 `reports/<分支名>/`**：记录基线分支/commit、patch、固件文件名 + size + `crc32`、完整串口日志与结论（失败同样记录）。
-3. **改动归属交叉追踪**：出现构建脚本或环境配置归属争议时，使用 `git log`、文件 `mtime` 与命令历史交叉核对。
-4. **项目级规则与状态文件初始化**：
+3. **提交前后 Diff 复核（防注释与文档过期）**：代码改动与相关注释、计数/总数说明、寄存器/DTS 注释或配套文档（如 `docs/hardware/`、`docs/build_and_flash.md`、`STATE.md`、`README.md`）往往不在同一位置，容易导致注释或文档过期。
+   - **提交前**：先执行 `git diff`（及 `git diff --staged`），逐项确认关联注释、计数说明及相关文档是否已同步更新；
+   - **提交后**：执行 `git diff HEAD~1 HEAD`（或 `git show`）对比前后两次提交再做一次复核，确认无遗漏同步或过期说明。
+4. **改动归属交叉追踪**：出现构建脚本或环境配置归属争议时，使用 `git log`、文件 `mtime` 与命令历史交叉核对。
+5. **项目级规则与状态文件初始化**：
    - 初始化项目规则：读取 [assets/AGENTS.embedded.md](assets/AGENTS.embedded.md) 模板，结合当前板型、SoC、串口与构建信息填空后写入项目根目录的 `AGENTS.md`。
    - 初始化状态追踪：读取 [assets/STATE.template.md](assets/STATE.template.md) 模板，写入项目根目录的 `STATE.md`，并在每次关键验证后更新。

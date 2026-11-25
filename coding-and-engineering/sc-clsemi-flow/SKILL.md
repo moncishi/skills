@@ -140,7 +140,7 @@ echo '<args-json>' | python3 ~/.agents/skills/sc-clsemi-flow/scripts/mcp_call.py
 
 ### 阶段 7 Commit 与 review 邮件
 
-1. `git add` 仅本次相关文件；commit message 沿用 `git log` 既有风格
+1. 提交前先看 `git diff`（含暂存区），核对可能不在同一位置的关联注释、计数说明及相关文档是否已同步，防止注释过期；`git add` 仅本次相关文件，commit message 沿用 `git log` 既有风格；提交后再执行 `git diff HEAD~1 HEAD`（或 `git show`）对比前后两次提交复核一遍
 2. 生成改动说明文件（需求、分支、commit id、diffstat），然后：
    `MAIL_TO=$MAIL_TO <MAIL_CONF 所在目录>/send_mail.py -s "review: <分支> <一句话摘要>" -f <改动说明文件> -a <diff.patch>`
 3. 挂起，向用户报告并等待 review
