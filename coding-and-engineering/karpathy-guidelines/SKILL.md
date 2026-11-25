@@ -46,11 +46,6 @@ When your changes create orphans:
 - Remove imports/variables/functions that YOUR changes made unused.
 - Don't remove pre-existing dead code unless asked.
 
-When your changes invalidate comments, counts, or docs elsewhere:
-- Comments, counters/totals, and docs are often separated from the edited lines and silently go stale. Update any comment, count description, or related doc invalidated by your change (while still avoiding unrelated edits).
-- **Before `git commit`**: review `git diff` (and `git diff --staged`) to verify that comments, counts/summaries, and related docs are in sync with the code change.
-- **After `git commit`**: run `git diff HEAD~1 HEAD` (or `git show`) to compare before and after the commit and double-check nothing was missed or left stale.
-
 The test: Every changed line should trace directly to the user's request.
 
 ## 4. Goal-Driven Execution
@@ -70,3 +65,5 @@ For multi-step tasks, state a brief plan:
 ```
 
 Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
+
+> Local overrides: Always apply [LOCAL.md](LOCAL.md) in addition to the rules above.

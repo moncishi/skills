@@ -73,3 +73,20 @@
 2. **新建或变更同步登记**：每个 skill 都要把自身使用的全部配置文件/持久化文件路径登记到 `sort-out.config.txt`，通过 `关联Skill` 标明是哪个（或哪些）skill 使用，写明 `位置`（`入库` / `本地`）、`权威`与`更新时机`；后续运行 `sort-out` 时，也可适当补充遗漏的配置文件或完善 `关联Skill` 说明。
 3. **共享文件增量写入与变更前核对**：更新被多个 `关联Skill` 引用的文件时，只做局部/增量修改，保留其他 skill 或人工维护的段落；若需重命名、移动、合并或删除该文件，必须先核对全部 `关联Skill` 的引用并在用户批准后同步更新相关引用。
 4. **入库 / 本地红线统一裁决**：包含密码、密钥、个人路径或临时实验日志的配置文件，一律标为 `位置: 本地` 并保持在 `.gitignore` 中，不因联动而越界入库。
+
+---
+
+## 5. 第三方 Skill 上游同步与本地定制防丢规范
+
+1. **零侵入优先**：跨 skill 通用规则优先沉淀到本仓库 `AGENTS.md` 或自研 skill；无须内嵌到第三方 skill 正文时，保持上游文件原样，便于直接覆盖更新。
+2. **上游元数据与本地定制分离**：
+   - 上游来源与已同步 commit / 版本记录在 `<skill>/references/UPSTREAM.md`。
+   - 必须加在某个第三方 skill 上的本地关键修改独立写在 `<skill>/LOCAL.md`，上游同步覆盖时不会丢失。
+   - 上游 `SKILL.md` 末尾仅保留 **1 行最小侵入指针**：
+     ```markdown
+     > Local overrides: Always apply [LOCAL.md](LOCAL.md) in addition to the rules above.
+     ```
+3. **同步上游三步门禁**：
+   - 同步前先检查目标 skill 目录下是否存在 `references/UPSTREAM.md` 与 `LOCAL.md`；
+   - 覆盖上游文件后，立刻检查 `git diff`：确认 `LOCAL.md` 与 `references/UPSTREAM.md` 完整未丢、`SKILL.md` 末尾指针仍在（被冲掉则补回 1 行），并核对上游改动是否与 `LOCAL.md` 冲突；
+   - 更新 `references/UPSTREAM.md` 中的同步版本与日期，提交前复核 `git diff`、提交后复核 `git diff HEAD~1 HEAD`。
