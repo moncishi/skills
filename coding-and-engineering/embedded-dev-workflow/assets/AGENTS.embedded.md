@@ -2,7 +2,8 @@
 
 ## 硬件事实（以此为准，不要自行假设）
 - SoC：____；板型：____；DTB：____（启动日志 `Model:` 应显示 `"____"`）
-- 器件连接表：见 `docs/hw_connections.md`（接口 / 控制器 / 片选或地址 / 复位 GPIO / 中断）
+- 器件连接表：见 `docs/hardware/hw_connections.md`（接口 / 控制器 / 片选或地址 / 复位 GPIO / 中断）
+- Datasheet 关键原文摘录：见 `docs/hardware/datasheets/`
 - 硬件 strap 决定、软件不可改的属性：
   - Switch 上联：____（如 HSGMII 2.5G）；SoC SerDes：____（如 2500Base-X）
   - PHY 地址：____
@@ -20,6 +21,7 @@
 - 救砖方式：____
 
 ## 开发规则
+- 编译、打包与刷机命令（经源码核对）：见 `docs/build_and_flash.md`
 - 使用任何命令前，先在现有代码/脚本中 grep 它的真实用法，并说明出处
 - 开发阶段看门狗已禁用（方法：____），不要恢复
 - 新器件先加 debug 输出（ID / link / speed / 状态寄存器），再调功能
@@ -38,5 +40,5 @@
 
 ## 版本与报告
 - 每次尝试新建分支：`test/<基线>-<功能>-<序号>`
-- 每个分支都写报告：基线 commit、patch、固件名 + `crc32`、完整日志、结论（失败也写）
-- 进展记录在 `STATE.md`，新会话先读它
+- 每个分支都写报告 `reports/<分支名>/report.md`：基线 commit、patch、固件名 + `crc32`、完整日志、结论（失败也写）
+- 进展记录在 `STATE.md`，新会话先读 `AGENTS.md` → `STATE.md` → `docs/hardware/` & `docs/build_and_flash.md`
