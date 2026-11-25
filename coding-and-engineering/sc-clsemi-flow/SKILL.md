@@ -22,6 +22,8 @@ description: clsemi（Clourney Semi，WA7220-G / WA7230-G，CS8862A，OpenWrt）
 
 从 env 取参数：`PROJECT_ROOT`（工作区根，运行日志等相对路径的锚点）`SDK_ROOT` `DOCKER_CONTAINER` `DOCKER_USER` `BUILD_TARGET` `GIT_BRANCH` `BUILD_DOC` `SERVERIP` `SSH_USER` `SSH_PASS` `BOARD_IP` `BOARD_USER` `BOARD_PASS` `DUT_TUNNEL_PORT` `TELNET_TUNNEL_PORT` `ENTERBOOT_VAR` `MCP_URL` `SERVERIP_PC` `WORK_DIR_PC` `SERIAL_PORT` `SERIAL_BAUD` `UBOOT_CMDS_FILE` `UBOOT_PROMPT` `LINUX_PROMPT` `BOOT_DONE_PATTERN` `MAIL_CONF` `MAIL_TO`。
 
+- **与 `sort-out` 联动**：若工作区根目录尚无 `sort-out.config.txt`，先调用一次 `sort-out` skill 初始化；若已存在，先核对其中登记的构建文档/刷机配置路径（如与 `embedded-dev-workflow` 共用的 `docs/build_and_flash.md` 或 `.zcode/build_flow.md`）以及入库/本地边界，避免重复维护或误将本地凭据文件入库。
+
 ## init 模式
 
 目的：新项目接入 = 一条 init + 改几个值。模板在本 skill `templates/`，通用脚本在 `scripts/`。
@@ -47,7 +49,7 @@ description: clsemi（Clourney Semi，WA7220-G / WA7230-G，CS8862A，OpenWrt）
 3. 通用脚本不放项目里：MCP 助手直接用本 skill `scripts/mcp_call.py`。若项目缺少
    `sc_script/tools/send_mail.py`（与 `MAIL_CONF` 同目录），从 `scripts/send_mail.py` 拷入；
    `mail.conf` 含 SMTP 凭据属用户级文件，由用户提供（doctor 会检查）。
-4. 输出生成清单，建议下一步跑 doctor 体检。
+4. 输出生成清单，建议下一步跑 doctor 体检。若项目根目录尚无 `sort-out.config.txt`，先调用一次 `sort-out` skill 初始化；随后将 `.zcode/sc_clsemi_flow.env`（`位置: 本地`，含密码/环境参数严禁入库）、`.zcode/build_flow.md`、`.zcode/uboot_flash_cmds.txt` 等本 skill 用到的配置文件路径登记到 `sort-out.config.txt` 并标明 `关联Skill: sc-clsemi-flow`（共用文件则逗号追加，不覆盖已有项），后续 `sort-out` 运行时也可适当补充说明。
 
 ## doctor 模式
 

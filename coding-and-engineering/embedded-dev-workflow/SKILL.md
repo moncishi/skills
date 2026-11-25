@@ -30,10 +30,13 @@ description: 嵌入式 / BSP / Linux / OpenWrt / U-Boot / 驱动与板端 bring-
 | **单次实验产物与报告**<br>测试分支的 `report.md`、patch、原始串口 log 与固件校验信息 | `reports/<分支名>/`（如 `reports/test-20261125-flash-01/report.md`） | 每次测试分支实验结束时归档（无论成败） | 回溯历史尝试、排查回归或整理合并说明时 |
 | **跨项目通用坑点与私有凭据**<br>与具体板子无关的芯片/工具链共性经验、账号/密钥 | OpenViking（可选，跨项目记忆） | 沉淀通用经验或保存私有凭据时 | 跨项目检索经验或获取凭据时（不混入项目 Git 仓库） |
 
-### 落盘执行三条纪律
+### 落盘与 sort-out 联动四条纪律
 1. **聊出来就落盘**：对话中一旦确认了硬件事实、有效命令、寄存器读回值或证伪了某个假设，当轮立即写入对应文件，避免长对话压缩或新开会话后失效。
 2. **先读定点再动手**：开始工作或新开会话时，按 `AGENTS.md` → `STATE.md` → `docs/hardware/` & `docs/build_and_flash.md` 顺序读取已有定点；已被 `STATE.md` 证伪的假设不得在无新证据的情况下重复尝试。
 3. **敏感信息与大文件边界**：凭据/密钥不写入项目 Git 文件（放本地忽略的 `.env` 或 OpenViking）；大体积固件二进制建议 `.gitignore`，在 `reports/<分支名>/report.md` 中保留文件名、大小与 `crc32`。
+4. **与 `sort-out` 联动（先初始化、再登记，兼容多对多）**：
+   - **无配置先调 `sort-out`**：读写或初始化 `AGENTS.md`、`STATE.md`、`docs/hardware/*`、`docs/build_and_flash.md`、`reports/*` 前，先检查目标项目根目录是否存在 `sort-out.config.txt`；**若不存在，先调用一次 `sort-out` skill 初始化 `sort-out.config.txt`**，再继续复用已登记路径或落地文件。
+   - **登记全部配置路径与所属 Skill**：把本 skill 用到的所有配置文件/持久化路径分别登记到 `sort-out.config.txt`，写明 `关联Skill` 为 `embedded-dev-workflow`（1 Skill → N Files）；若某文件同时被其他 skill（如 `sc-clsemi-flow`）使用（1 File ← N Skills），在 `关联Skill` 中逗号追加 `embedded-dev-workflow` 而不覆盖已有项，修改共享文件时仅增量更新；后续运行 `sort-out` 时也可适当补充完善登记说明。
 
 ---
 
