@@ -33,8 +33,9 @@
 | [openviking-skills](agent-and-meta/openviking-skills/SKILL.md) | 管理 OpenViking 中的技能，包括查找、安装、更新、迁移和校验。 | [volcengine/OpenViking](https://github.com/volcengine/OpenViking) |
 | [sc-clsemi-flow](coding-and-engineering/sc-clsemi-flow/SKILL.md) | Clsemi/OpenWrt 板端开发、编译、刷机和验证流程。 | 本仓库 |
 | [sort-out](coding-and-engineering/sort-out/SKILL.md) | 整理并持续维护项目文档。 | 本仓库 |
+| [task-distill](agent-and-meta/task-distill/SKILL.md) | 任务完成后复盘提炼可复用的方向指引、核心方法论、高信噪比锚点词条与开局 Prompt。 | 本仓库 |
 
-## 全部技能（42）
+## 全部技能（43）
 
 | 技能 | 说明 |
 | --- | --- |
@@ -75,6 +76,7 @@
 | [skill-creator](agent-and-meta/skill-creator/SKILL.md) | Create new skills, edit existing skills, and iterate wording. |
 | [sort-out](coding-and-engineering/sort-out/SKILL.md) | 整理并持续维护项目文档（sort out / tidy up / 文档整理 / 文档梳理 / 把文档更新到最新 / 文档过期了）。 |
 | [story-skill](content-and-social/story-skill/SKILL.md) | 基于罗伯特·麦基《故事：材质、结构、风格和银幕剧作的原理》的银幕剧作方法论。Use when analyzing, designing, structuring, or rewriting any narrative… |
+| [task-distill](agent-and-meta/task-distill/SKILL.md) | Distill a completed task into reusable strategic direction, methodology steps, high-signal semantic anchor terms, constraints, and a copy-paste starter prompt. |
 | [tikhub-api-helper](content-and-social/tikhub-api-helper/SKILL.md) | Search and query TikHub APIs for TikTok, Douyin, Xiaohongshu, Lemon8, Instagram, YouTube, Twitter, Reddit, a… |
 | [title-writing](content-and-social/title-writing/SKILL.md) | Use when writing Xiaohongshu post titles, creating headlines for content, improving click-through rates, or… |
 | [web-gui-tester](coding-and-engineering/web-gui-tester/SKILL.md) | Use the browser automation tooling available in the session to test web frontends interactively in a purely… |
